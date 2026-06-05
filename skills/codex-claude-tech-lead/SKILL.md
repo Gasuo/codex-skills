@@ -198,6 +198,79 @@ If a Claude invocation hangs:
 
 ---
 
+## Runtime Evidence Log
+
+For bug fixes and behavior changes, local runtime evidence is mandatory. Do not rely on repeated user re-runs and visual reports alone.
+
+Purpose:
+
+- preserve what changed and what the program actually did
+- make each follow-up debugging turn start from evidence
+- prevent blind cycles of edit -> user runs -> still wrong -> edit again
+
+Default path:
+
+```text
+.codex/task-logs/<TaskId>.md
+```
+
+Rules:
+
+- Create or append the log for every non-trivial bug fix, UI behavior change, integration fix, or repeated failure.
+- Before editing, record the symptom, expected runtime signal, current hypothesis, and where logs/output will come from.
+- Prefer existing program logs, console output, test output, trace files, event stores, or captured app output.
+- If no useful runtime signal exists, add the smallest diagnostic log needed, using the repository's logging style.
+- After every Claude implementation round, append changed files, diff summary, command output, runtime output, and remaining risks.
+- If the user reports "still wrong", "not fixed", "same issue", or provides new runtime evidence, read this log and the latest program output before new exploration or delegation.
+- If runtime evidence is missing, collect it before delegating another fix.
+- Do not store secrets, credentials, private keys, or large pasted logs. Summarize long output and keep file paths/commands exact.
+- Remove temporary diagnostic logs after the root cause is fixed unless they are intentionally useful production diagnostics.
+- Prefer committing useful logs only when they are intentionally project documentation. Otherwise keep them local in `.codex/task-logs`.
+
+Template:
+
+```text
+# <TaskId>
+
+Date:
+Working directory:
+User request:
+
+Observed problem:
+- <symptom/evidence>
+
+Expected runtime signal:
+- <what log/output proves success or failure>
+
+Runtime evidence sources:
+- Program logs:
+- Console output:
+- Test output:
+- User feedback:
+
+Current hypothesis:
+- <root cause or uncertainty>
+
+Scope:
+- Files/symbols:
+- Forbidden areas:
+
+Implementation rounds:
+- Round 1:
+  - Change:
+  - Diff summary:
+  - Command output:
+  - Runtime output:
+  - User feedback:
+  - Decision from evidence:
+  - Remaining risk:
+
+Next step:
+- <what log/output to inspect before changing again>
+```
+
+---
+
 ## Startup Protocol
 
 Before project analysis or implementation:
@@ -243,6 +316,7 @@ Delegation Gate:
 - Selected implementation surface: <tool/subagent/local CLI/Codex direct>
 - TaskId: <unique id>
 - Working directory: <path>
+- Evidence log path: <path or not needed>
 - Owned process id: <pid or none>
 - Reason:
 ```
@@ -403,6 +477,7 @@ Scope:
 Modify only files listed in Allowed Edits.
 Read only files/symbols named in the Context Capsule unless a specific missing context request is needed.
 Do not inspect unrelated areas, browse the repository, or search broadly.
+Preserve or add diagnostic logging only when the Context Capsule explicitly allows it.
 
 Forbidden:
 - unrelated fixes
@@ -412,6 +487,7 @@ Forbidden:
 - migrations
 - broad formatting churn
 - rollback of user changes
+- deleting diagnostic logs/evidence requested by Codex
 - long explanations
 
 If blocked:
