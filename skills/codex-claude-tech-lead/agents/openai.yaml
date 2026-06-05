@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex Claude Tech Lead"
+  short_description: "Tech Lead workflow for delegated coding"
+  default_prompt: "Use $codex-claude-tech-lead to analyze, delegate, review, and verify a coding task."
+
+policy:
+  allow_implicit_invocation: true
