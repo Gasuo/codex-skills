@@ -176,6 +176,28 @@ Recovery:
 
 ---
 
+## Process Ownership
+
+Codex must never kill or interrupt Claude Code work it did not start for the current delegated task.
+
+Rules:
+
+- Assign a unique `TaskId` before invoking Claude Code.
+- Record the working directory, prompt file path, and process id when a local Claude process is started.
+- Only wait for, inspect, or terminate the recorded process for the current `TaskId`.
+- Never run broad process commands such as `Stop-Process -Name claude`, `taskkill /IM claude*`, or equivalent name-based kills.
+- Never kill Claude Code sessions from other repositories, terminals, Codex threads, or user-started work.
+- If the owned process id is unknown, do not terminate anything. Ask the user or leave it running.
+- Prefer bounded non-interactive calls with timeouts over background interactive sessions.
+
+If a Claude invocation hangs:
+
+1. Check whether Codex has a recorded owned process id for this `TaskId`.
+2. If yes, terminate only that exact process id.
+3. If no, report the hang and do not kill any Claude process.
+
+---
+
 ## Startup Protocol
 
 Before project analysis or implementation:
@@ -219,6 +241,9 @@ Delegation Gate:
 - Is Claude Code subagent available? yes/no
 - Is local claude CLI available? yes/no
 - Selected implementation surface: <tool/subagent/local CLI/Codex direct>
+- TaskId: <unique id>
+- Working directory: <path>
+- Owned process id: <pid or none>
 - Reason:
 ```
 
@@ -434,10 +459,18 @@ Prefer non-interactive invocation.
 PowerShell shape:
 
 ```powershell
-$promptPath = Join-Path $env:TEMP "claude-task.md"
+$taskId = "claude-task-" + [guid]::NewGuid().ToString("N")
+$promptPath = Join-Path $env:TEMP "$taskId.md"
+$workingDirectory = (Get-Location).Path
 
 @'
 Claude:
+
+TaskId:
+<taskId>
+
+WorkingDirectory:
+<workingDirectory>
 
 Implement the following task:
 
@@ -496,6 +529,7 @@ Then use the nearest non-interactive invocation.
 
 Do not open an unconstrained interactive Claude session for repository-wide work.
 Do not paste large source files into the prompt. Pass paths, symbols, constraints, and acceptance criteria.
+Do not stop or kill any Claude process unless Codex recorded the exact process id for the current `TaskId`.
 
 ---
 
